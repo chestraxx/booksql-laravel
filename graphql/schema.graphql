@@ -1,0 +1,112 @@
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime
+    @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+"Indicates what fields are available at the top level of a query operation."
+type Query {
+    "Find a single user by an identifying attribute."
+    user(
+        "Search by primary key."
+        id: ID @eq @rules(apply: ["prohibits:email", "required_without:email"])
+
+        "Search by email address."
+        email: String
+            @eq
+            @rules(apply: ["prohibits:id", "required_without:id", "email"])
+    ): User @find
+
+    "List multiple users."
+    users(
+        "Filters by name. Accepts SQL LIKE wildcards `%` and `_`."
+        name: String @where(operator: "like")
+    ): [User!]! @paginate(defaultCount: 10)
+
+    books: [Book] @all
+    book(id: ID @eq): Book @find
+    booksByFeatured(featured: Boolean! @eq): [Book] @all
+
+    categories: [Category] @all
+    category(id: ID @eq): Category @find
+}
+
+type Mutation {
+    createCategory(
+        name: String @rules(apply: ["required", "unique:categories,name"])
+    ): Category @create
+
+    updateCategory(
+        id: ID @rules(apply: ["required"])
+        name: String @rules(apply: ["required", "unique:categories,name"])
+    ): Category @update
+
+    deleteCategory(id: ID! @rules(apply: ["required"])): Category @delete
+
+    # $table->string('title');
+    # $table->string('author');
+    # $table->string('image')->nullable();
+    # $table->text('description')->nullable();
+    # $table->string('link')->nullable();
+    # $table->boolean('featured')->default(false);
+    # $table->unsignedBigInteger('category_id');
+
+    createBook(
+        title: String @rules(apply: ["required"])
+        author: String @rules(apply: ["required"])
+        image: String
+        description: String
+        link: String
+        featured: Boolean
+        category_id: Int!
+    ): Book @create
+
+    updateBook(
+        id: ID @rules(apply: ["required"])
+        title: String @rules(apply: ["required"])
+        author: String @rules(apply: ["required"])
+        image: String
+        description: String
+        link: String
+        featured: Boolean
+        category_id: Int!
+    ): Book @update
+
+    deleteBook(id: ID! @rules(apply: ["required"])): Book @delete
+}
+
+"Account of a person who utilizes this application."
+type User {
+    "Unique primary key."
+    id: ID!
+
+    "Non-unique name."
+    name: String!
+
+    "Unique email address."
+    email: String!
+
+    "When the email was verified."
+    email_verified_at: DateTime
+
+    "When the account was created."
+    created_at: DateTime!
+
+    "When the account was last updated."
+    updated_at: DateTime!
+}
+
+type Book {
+    id: ID!
+    title: String!
+    author: String!
+    image: String
+    link: String
+    description: String
+    featured: Boolean
+    category: Category! @belongsTo
+}
+
+type Category {
+    id: ID!
+    name: String!
+    books: [Book] @hasMany
+}
